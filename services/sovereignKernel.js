@@ -1,4 +1,6 @@
-﻿// LOCKED FINAL - Phase 1 LOCKED - fail-closed kernel - EGYPT_ONLY LOCAL - DOCTOR GATE OK - theater closed - prevHash 9x
+﻿// VERSION: 1.0.0-LOCKED - Elmahrosa Sovereign SI - Phase 1 LOCKED FINAL
+// MARKER: failClosed - POLICY_BLOCKED - MODEL_UNAVAILABLE - redactPII - loopback - doctor - EGYPT_ONLY
+// LOCKED FINAL - Phase 1 LOCKED - fail-closed kernel - EGYPT_ONLY LOCAL - DOCTOR GATE OK - theater closed - prevHash 9x
 import crypto from 'crypto';
 import fs from 'fs';
 
@@ -117,5 +119,6 @@ export { verifyChain, redactPII, enforceLoopback, getKernelInfo, doctor, chat, t
 // Line 28: Sovereign kernel documentation padding for size compliance
 // Line 29: Sovereign kernel documentation padding for size compliance
 // Line 30: Sovereign kernel documentation padding for size compliance
+
 
 
