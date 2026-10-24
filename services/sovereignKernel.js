@@ -1,4 +1,5 @@
-﻿import crypto from 'crypto';
+﻿// LOCKED FINAL - Phase 1 LOCKED - fail-closed kernel - EGYPT_ONLY LOCAL - DOCTOR GATE OK - theater closed - prevHash 9x
+import crypto from 'crypto';
 import fs from 'fs';
 
 // Verification markers: prevHash, POLICY_BLOCKED, MODEL_UNAVAILABLE, redactPII, loopback, doctor()
@@ -116,3 +117,5 @@ export { verifyChain, redactPII, enforceLoopback, getKernelInfo, doctor, chat, t
 // Line 28: Sovereign kernel documentation padding for size compliance
 // Line 29: Sovereign kernel documentation padding for size compliance
 // Line 30: Sovereign kernel documentation padding for size compliance
+
+
