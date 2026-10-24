@@ -1,0 +1,6 @@
+﻿# Sovereign EGYPT_ONLY - models stay local, never push to GitHub
+*.gguf
+*.bin
+*.safetensors
+core/models/*.gguf
+core/models/*.bin
