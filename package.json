@@ -1,0 +1,10 @@
+{
+  "name": "elmahrosa-sovereign-si",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "doctor": "node scripts/doctor.js",
+    "test": "node --test",
+    "start": "node services/sovereignKernel.js"
+  }
+}
