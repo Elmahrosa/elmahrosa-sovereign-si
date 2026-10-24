@@ -1,0 +1,15 @@
+import fs from 'fs';
+const manifestPath = './core/models/manifest.json';
+let ok = true;
+try {
+  const manifest = JSON.parse(fs.readFileSync(manifestPath,'utf8'));
+  console.log(`[doctor] manifest models: ${manifest.models?.length || 0}`);
+  if (!fs.existsSync('./services/sovereignKernel.js')) { console.error("missing kernel"); ok=false; }
+  const kernelStat = fs.statSync('./services/sovereignKernel.js');
+  if (kernelStat.size < 5000) { console.error(`kernel too small ${kernelStat.size} - stub detected`); ok=false; }
+  // check hashes present
+  const hasHashes = manifest.models?.every(m=>m.sha256 && m.sha256.length > 10);
+  if (!hasHashes) { console.error("hashes missing"); ok=false; }
+  console.log(`[doctor] kernel size ${kernelStat.size} bytes`);
+} catch(e){ console.error(e.message); ok=false; }
+process.exit(ok ? 0 : 1);
