@@ -13,14 +13,21 @@ let prev = "GENESIS";
 function chain(data){ const h = createHash("sha256").update(prev + JSON.stringify(data)).digest("hex"); prev = h; return h; }
 function validateMode(m){
   if(!ALLOWED_MODES.includes(m)){
-    const entry = { code: "MODE_INVALID", decision: "BLOCKED", status: "BLOCKED", msg: `${m} not in ${ALLOWED_MODES.join(',')}`, mode: m, prevHash: prev, ts: Date.now() };
+    const entry = { code: "MODE_INVALID", decision: "BLOCKED", msg: `${m} not in ${ALLOWED_MODES.join(',')}`, mode: m, prevHash: prev, ts: Date.now() };
     chain(entry);
     const err = new Error(`MODE_INVALID: ${m}`); err.sovereign = entry; throw err;
   }
   return m;
 }
+function isExternalUrl(url){
+  if(!url || !url.startsWith("http")) return false;
+  try{
+    const h = new URL(url).hostname;
+    return !(h === "127.0.0.1" || h === "localhost" || h === "::1");
+  }catch{ return true; }
+}
 function failClosed(code, msg){
-  const entry = { code, decision: "BLOCKED", status: "BLOCKED", block: "BLOCKED", msg, mode: MODE, registry: MODEL_REGISTRY, prevHash: prev, ts: Date.now() };
+  const entry = { code, decision: "BLOCKED", msg, mode: MODE, registry: MODEL_REGISTRY, prevHash: prev, ts: Date.now() };
   chain(entry);
   const err = new Error(code); err.code = code; err.sovereign = entry; throw err;
 }
@@ -30,7 +37,7 @@ export async function translate(text){ failClosed("MODEL_UNAVAILABLE", "translat
 export async function chat(req){
   validateMode(MODE);
   const url = req?.url || req?.endpoint || "";
-  if(url && url.startsWith("http") && !url.includes("127.0.0.1") && !url.includes("localhost")){
+  if(isExternalUrl(url)){
     failClosed("POLICY_BLOCKED", `external endpoint blocked: ${url} - EGYPT_ONLY`);
   }
   try{
@@ -40,9 +47,9 @@ export async function chat(req){
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ model: LOCAL_MODEL, prompt, stream: false })
     });
-    if(!res.ok) failClosed("MODEL_UNAVAILABLE", `local model ${LOCAL_MODEL} not running`);
+    if(!res.ok) failClosed("MODEL_UNAVAILABLE", `local model ${LOCAL_MODEL} not running - run ollama serve`);
     const data = await res.json();
-    return { response: data.response, mode: MODE, registry: MODEL_REGISTRY, model: LOCAL_MODEL, prevHash: chain({prompt, model: LOCAL_MODEL}) };
+    return { response: data.response, mode: MODE, registry: MODEL_REGISTRY, model: LOCAL_MODEL, decision: "OK", prevHash: chain({prompt, model: LOCAL_MODEL}) };
   }catch(e){ if(e.sovereign) throw e; failClosed("MODEL_UNAVAILABLE", e.message); }
 }
 export function doctor(){ 
@@ -55,4 +62,4 @@ export function doctor(){
 }
 export { chain };
 export function redactPII(s){ return String(s).replace(/\d{11,}/g, "[REDACTED]"); }
-export function verify(){ return { version: VERSION, prevHash: prev }; }
+export function verify(){ return { version: VERSION, status: "IN_MEMORY_ONLY - NOT_PERSISTED", prevHash: prev }; }
