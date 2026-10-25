@@ -1,65 +1,112 @@
-﻿export const VERSION = "1.1.0-PHASE2";
-export const ALLOWED_MODES = ['EGYPT_ONLY', 'LOCAL'];
-export const MODE = (process.env.TEOS_SOVEREIGN_MODE || process.env.TEOS_DATA_RESIDENCY || "EGYPT_ONLY").toUpperCase();
-export const MODEL_REGISTRY = process.env.TEOS_MODEL_REGISTRY || process.env.MODEL_REGISTRY || "LOCAL_ONLY";
-export const LOCAL_MODEL = process.env.TEOS_LOCAL_MODEL || "qwen2.5:1.5b";
-export const REGISTRY_DETAIL = {
-  "qwen2.5:1.5b": { status: "INSTALLED", size: "986MB" },
-  "llama3.2:3b": { status: "PENDING" },
-  "mistral:7b": { status: "PENDING" }
-};
-import { createHash } from "crypto";
-let prev = "GENESIS";
-function chain(data){ const h = createHash("sha256").update(prev + JSON.stringify(data)).digest("hex"); prev = h; return h; }
-function validateMode(m){
-  if(!ALLOWED_MODES.includes(m)){
-    const entry = { code: "MODE_INVALID", decision: "BLOCKED", msg: `${m} not in ${ALLOWED_MODES.join(',')}`, mode: m, prevHash: prev, ts: Date.now() };
-    chain(entry);
-    const err = new Error(`MODE_INVALID: ${m}`); err.sovereign = entry; throw err;
-  }
-  return m;
+﻿import crypto from "crypto";
+import { append as auditAppend, readAll as auditReadAll, getLastHash as auditLastHash, getCount as auditCount } from "./auditLog.js";
+
+export const MODE = "EGYPT_ONLY";
+export const REGISTRY_DETAIL = "qwen2.5:1.5b INSTALLED / 2 PENDING - LOCAL_ONLY";
+export const MODEL = "qwen2.5:1.5b";
+
+let memoryChain = [];
+let initialized = false;
+
+function initFromDisk(){
+  if(initialized) return;
+  const disk = auditReadAll();
+  memoryChain = disk;
+  initialized = true;
 }
+
+function sha256(s){
+  return crypto.createHash("sha256").update(s).digest("hex");
+}
+
 function isExternalUrl(url){
-  if(!url || !url.startsWith("http")) return false;
+  if(!url) return false;
   try{
-    const h = new URL(url).hostname;
-    return !(h === "127.0.0.1" || h === "localhost" || h === "::1");
-  }catch{ return true; }
-}
-function failClosed(code, msg){
-  const entry = { code, decision: "BLOCKED", msg, mode: MODE, registry: MODEL_REGISTRY, prevHash: prev, ts: Date.now() };
-  chain(entry);
-  const err = new Error(code); err.code = code; err.sovereign = entry; throw err;
-}
-export async function ocr(image){ failClosed("MODEL_UNAVAILABLE", "ocr model not loaded locally"); }
-export async function asr(audio){ failClosed("MODEL_UNAVAILABLE", "asr model not loaded locally"); }
-export async function translate(text){ failClosed("MODEL_UNAVAILABLE", "translate model not loaded locally"); }
-export async function chat(req){
-  validateMode(MODE);
-  const url = req?.url || req?.endpoint || "";
-  if(isExternalUrl(url)){
-    failClosed("POLICY_BLOCKED", `external endpoint blocked: ${url} - EGYPT_ONLY`);
+    const u = new URL(url);
+    const h = u.hostname.toLowerCase();
+    if(h === "localhost" || h === "127.0.0.1" || h === "0.0.0.0") return false;
+    if(h.endsWith(".local") || h === "::1") return false;
+    return true;
+  }catch{
+    return false;
   }
+}
+
+function throwSovereign(code, decision, msg){
+  const err = new Error(msg);
+  err.sovereign = { code, decision, msg };
+  err.code = code;
+  throw err;
+}
+
+export function doctor(){
+  initFromDisk();
+  const prev = auditLastHash();
+  const count = auditCount();
+  return {
+    model: MODEL,
+    status: `EGYPT_ONLY - LOCAL_ONLY - 1 installed / 3 total - OK - ${count} audit entries`,
+    prevHash: prev,
+    failClosed: true,
+    mode: MODE,
+    registry: "LOCAL_ONLY",
+    registryDetail: REGISTRY_DETAIL,
+    auditCount: count,
+    auditLog: "data/sovereign-audit.jsonl"
+  };
+}
+
+export function verify(){
+  initFromDisk();
+  const all = auditReadAll();
+  if(all.length===0){
+    return { ok: true, status: "GENESIS - no entries yet", count: 0, storage: "IN_MEMORY_ONLY - NOT_PERSISTED -> JSONL on disk ready" };
+  }
+  for(let i=1;i<all.length;i++){
+    if(all[i].prevHash !== all[i-1].hash) return { ok: false, status: `CHAIN_BROKEN at ${i}`, count: all.length };
+  }
+  return { ok: true, status: `CHAIN_OK - ${all.length} entries - JSONL PERSISTED`, count: all.length, lastHash: all[all.length-1].hash, storage: "JSONL on disk - survives restart" };
+}
+
+export function redactPII(text){
+  if(!text) return text;
+  return text.replace(/\b\d{14}\b/g, "[NID_REDACTED]");
+}
+
+export async function ocr(image){
+  throwSovereign("MODEL_UNAVAILABLE", "BLOCKED", "ocr: local model not running - EGYPT_ONLY");
+}
+
+export async function asr(audio){
+  throwSovereign("MODEL_UNAVAILABLE", "BLOCKED", "asr: local model not running - EGYPT_ONLY");
+}
+
+export async function chat({ prompt, url }){
+  initFromDisk();
+  // 1. POLICY FIRST - اهم من validation
+  if(isExternalUrl(url)){
+    throwSovereign("POLICY_BLOCKED", "BLOCKED", `external endpoint blocked: ${url} - EGYPT_ONLY`);
+  }
+  // 2. ثم validation
+  if(!prompt || typeof prompt !== "string") throwSovereign("BAD_REQUEST", "BLOCKED", "prompt required");
+  const prevHash = auditLastHash();
+  let responseText;
   try{
-    const prompt = req?.prompt || req?.text || "انت مساعد سيادي مصري";
     const res = await fetch("http://127.0.0.1:11434/api/generate", {
       method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ model: LOCAL_MODEL, prompt, stream: false })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: MODEL, prompt, stream: false })
     });
-    if(!res.ok) failClosed("MODEL_UNAVAILABLE", `local model ${LOCAL_MODEL} not running - run ollama serve`);
+    if(!res.ok) throw new Error(`ollama http ${res.status}`);
     const data = await res.json();
-    return { response: data.response, mode: MODE, registry: MODEL_REGISTRY, model: LOCAL_MODEL, decision: "OK", prevHash: chain({prompt, model: LOCAL_MODEL}) };
-  }catch(e){ if(e.sovereign) throw e; failClosed("MODEL_UNAVAILABLE", e.message); }
-}
-export function doctor(){ 
-  try{
-    validateMode(MODE);
-    return { version: VERSION, mode: MODE, allowedModes: ALLOWED_MODES, registry: MODEL_REGISTRY, registryDetail: REGISTRY_DETAIL, model: LOCAL_MODEL, status: `${MODE} - LOCAL_ONLY - 1 installed / 3 total - OK`, prevHash: prev, failClosed: true };
+    responseText = data.response || "OK";
   }catch(e){
-    return { version: VERSION, status: e.message, error: e.message, allowedModes: ALLOWED_MODES, prevHash: prev };
+    throwSovereign("MODEL_UNAVAILABLE", "BLOCKED", `local model ${MODEL} not running: ${e.message}`);
   }
+  const payload = `${prevHash}:${prompt}:${responseText}:${Date.now()}`;
+  const hash = sha256(payload);
+  const entry = { prevHash, hash, prompt: prompt.slice(0,500), response: responseText.slice(0,2000), model: MODEL, decision: "OK", code: "OK" };
+  auditAppend(entry);
+  memoryChain.push(entry);
+  return { response: responseText, decision: "OK", model: MODEL, prevHash, hash, code: "OK" };
 }
-export { chain };
-export function redactPII(s){ return String(s).replace(/\d{11,}/g, "[REDACTED]"); }
-export function verify(){ return { version: VERSION, status: "IN_MEMORY_ONLY - NOT_PERSISTED", prevHash: prev }; }
