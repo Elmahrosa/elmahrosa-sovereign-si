@@ -1,9 +1,10 @@
-﻿{
+{
   "name": "elmahrosa-sovereign-si",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "doctor": "node scripts/doctor.js"
+    "doctor": "node scripts/doctor.js",
+    "cinema": "node server.mjs"
   }
 }

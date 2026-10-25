@@ -1,0 +1,136 @@
+﻿<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TEOS Cinema Studio</title>
+<style>
+  :root { color-scheme: dark; --bg:#0b0d10; --card:#14181d; --line:#262d36; --fg:#e8e6e1; --gold:#c9a227; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui,Segoe UI,Tahoma,sans-serif; background:var(--bg); color:var(--fg); }
+  main { max-width:880px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { font-size:20px; margin:0 0 4px; color:var(--gold); }
+  p.sub { margin:0 0 20px; opacity:.7; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; }
+  label { display:block; font-size:12px; opacity:.75; margin-bottom:4px; }
+  select, textarea, input { width:100%; padding:9px 10px; background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:8px; font:inherit; }
+  textarea { min-height:84px; resize:vertical; }
+  .row { margin-top:14px; }
+  button { padding:10px 16px; border:1px solid var(--gold); background:transparent; color:var(--gold); border-radius:8px; cursor:pointer; font:inherit; }
+  button.primary { background:var(--gold); color:#111; }
+  button:disabled { opacity:.5; cursor:wait; }
+  pre { white-space:pre-wrap; word-break:break-word; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px; min-height:60px; margin:0; }
+  .bar { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  small { opacity:.6; }
+</style>
+</head>
+<body>
+<main>
+  <h1>TEOS Cinema Studio</h1>
+  <p class="sub">Camera + lens + aperture &rarr; cinematic prompt. Built locally, sent to the sovereign gateway only when you click Send.</p>
+
+  <div class="grid">
+    <div><label for="camera">Camera / Film</label>
+      <select id="camera"></select></div>
+    <div><label for="lens">Lens type</label>
+      <select id="lens"></select></div>
+    <div><label for="focal">Focal length</label>
+      <select id="focal"></select></div>
+    <div><label for="aperture">Aperture</label>
+      <select id="aperture"></select></div>
+    <div><label for="light">Lighting</label>
+      <select id="light"></select></div>
+    <div><label for="move">Camera movement</label>
+      <select id="move"></select></div>
+  </div>
+
+  <div class="row"><label for="subject">Subject / scene</label>
+    <textarea id="subject" placeholder="e.g. An old fisherman mending nets at dawn on the Alexandria corniche"></textarea></div>
+
+  <div class="bar">
+    <button class="primary" id="build">Build prompt</button>
+    <button id="copy">Copy</button>
+    <button id="send">Send to sovereign-chat</button>
+  </div>
+
+  <div class="row"><label>Cinematic prompt</label><pre id="out"></pre></div>
+  <div class="row"><label>Gateway response</label><pre id="resp"></pre></div>
+  <small>API base: <span id="apibase"></span> (override with ?api=http://host:port)</small>
+</main>
+
+<script>
+const OPTIONS = {
+  camera:  ["70mm Film (IMAX 65/70)", "35mm Film", "16mm Film", "Digital Cinema (ARRI Alexa style)", "Vintage Super 8"],
+  lens:    ["Spherical prime", "Anamorphic", "Macro", "Tilt-shift", "Vintage rehoused"],
+  focal:   ["14mm", "24mm", "35mm", "50mm", "85mm", "135mm"],
+  aperture:["f/1.4", "f/2", "f/2.8", "f/4", "f/8", "f/16"],
+  light:   ["Golden hour", "Soft overcast", "Low-key chiaroscuro", "Neon night", "Harsh midday", "Candlelit practicals"],
+  move:    ["Static locked-off", "Slow dolly in", "Handheld", "Crane up", "Orbit around subject", "Steadicam follow"]
+};
+const DEFAULTS = { camera:"70mm Film (IMAX 65/70)", focal:"35mm", aperture:"f/1.4" };
+
+for (const [id, list] of Object.entries(OPTIONS)) {
+  const el = document.getElementById(id);
+  for (const v of list) {
+    const o = document.createElement("option");
+    o.value = v; o.textContent = v;
+    if (DEFAULTS[id] === v) o.selected = true;
+    el.appendChild(o);
+  }
+}
+
+const q = new URLSearchParams(location.search);
+const API = (q.get("api") || "").replace(/\/$/, "");
+document.getElementById("apibase").textContent = API || "(same origin)";
+
+const val = id => document.getElementById(id).value;
+
+function depthNote(ap) {
+  if (ap === "f/1.4" || ap === "f/2") return "very shallow depth of field, creamy bokeh";
+  if (ap === "f/2.8" || ap === "f/4") return "moderate depth of field";
+  return "deep focus, everything sharp";
+}
+
+function buildPrompt() {
+  const subject = val("subject").trim() || "an unspecified cinematic scene";
+  return [
+    `Cinematic shot: ${subject}.`,
+    `Shot on ${val("camera")}, ${val("lens")} lens at ${val("focal")}, ${val("aperture")} (${depthNote(val("aperture"))}).`,
+    `Lighting: ${val("light")}. Camera movement: ${val("move")}.`,
+    `Photorealistic film grain, natural color grading, professional cinematography.`
+  ].join("\n");
+}
+
+const out = document.getElementById("out");
+const resp = document.getElementById("resp");
+
+document.getElementById("build").onclick = () => { out.textContent = buildPrompt(); };
+document.getElementById("copy").onclick = async () => {
+  out.textContent = buildPrompt();
+  try { await navigator.clipboard.writeText(out.textContent); } catch (e) { resp.textContent = "Copy failed: " + e.message; }
+};
+
+document.getElementById("send").onclick = async (ev) => {
+  const btn = ev.currentTarget;
+  out.textContent = buildPrompt();
+  btn.disabled = true; resp.textContent = "...";
+  try {
+    const r = await fetch(`${API}/api/sovereign-chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "Rewrite the following camera setup as ONE detailed, vivid English prompt for an AI video generator (max 120 words). Describe composition, light, atmosphere and motion. Do not explain or analyze the setup. Output only the final prompt.\n\n" + out.textContent })
+    });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const data = await r.json();
+    resp.textContent = data.response ?? JSON.stringify(data, null, 2);
+  } catch (e) {
+    resp.textContent = "Error: " + e.message;
+  } finally { btn.disabled = false; }
+};
+
+out.textContent = buildPrompt();
+</script>
+</body>
+</html>
+
+
