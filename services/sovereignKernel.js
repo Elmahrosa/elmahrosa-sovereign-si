@@ -1,6 +1,6 @@
 ﻿ // EGYPT_ONLY - LOCAL MODE - FAIL-CLOSED SOVEREIGN KERNEL
  export const VERSION = "1.0.0-LOCKED";
- export const MODE = "EGYPT_ONLY";
+ export const MODE = process.env.TEOS_SOVEREIGN_MODE || process.env.TEOS_DATA_RESIDENCY || "EGYPT_ONLY";
  import { createHash } from "crypto";
  let prev = "GENESIS";
  function chain(data){
