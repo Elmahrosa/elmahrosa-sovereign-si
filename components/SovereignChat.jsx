@@ -5,9 +5,15 @@ export default function SovereignChat(){
   const [prompt, setPrompt] = useState("");
   const [history, setHistory] = useState([]);
   const [doctor, setDoctor] = useState(null);
+  const [doctorError, setDoctorError] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  useEffect(()=>{ fetch("/api/sovereign-chat").then(r=>r.json()).then(setDoctor); }, []);
+  useEffect(()=>{
+    fetch("/api/sovereign-chat")
+      .then(r=>r.json())
+      .then(setDoctor)
+      .catch(()=>setDoctorError(true));
+  }, []);
 
   async function send(){
     if(!prompt.trim()) return;
@@ -33,7 +39,11 @@ export default function SovereignChat(){
   return (
     <div className="max-w-2xl mx-auto p-4 border rounded-xl bg-black text-white">
       <div className="flex justify-between items-center mb-3 text-xs font-mono">
-        <span className="bg-green-900 px-2 py-1 rounded">{doctor?.status || "EGYPT_ONLY - LOCAL_ONLY - 1 installed / 3 total - OK"}</span>
+        {doctorError ? (
+          <span className="bg-red-900 px-2 py-1 rounded">DOCTOR UNREACHABLE - CHECK SERVER</span>
+        ) : (
+          <span className={`${doctor?.status?.includes("OK")?"bg-green-900":"bg-gray-800"} px-2 py-1 rounded`}>{doctor?.status || "LOADING..."}</span>
+        )}
         <span className="bg-gray-800 px-2 py-1 rounded">{doctor?.model || "qwen2.5:1.5b"} | {doctor?.prevHash?.slice(0,8) || "GENESIS"}</span>
       </div>
       <div className="h-96 overflow-y-auto space-y-2 mb-3 bg-zinc-900 p-3 rounded">

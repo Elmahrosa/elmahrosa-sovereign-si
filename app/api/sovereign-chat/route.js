@@ -1,4 +1,4 @@
-﻿import { chat, doctor, MODE } from "../../../services/sovereignKernel.js";
+﻿import { chat, doctor } from "../../../services/sovereignKernel.js";
 
 export async function POST(req){
   try{
