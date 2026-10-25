@@ -1,4 +1,4 @@
-﻿import crypto from "crypto";
+  import crypto from "crypto";
 import { append as auditAppend, readAll as auditReadAll, getLastHash as auditLastHash, getCount as auditCount } from "./auditLog.js";
 
 export const ALLOWED_MODES = ["EGYPT_ONLY", "LOCAL"];
@@ -70,20 +70,22 @@ export function doctor(){
 export function verify(){
   initFromDisk();
   const all = auditReadAll();
-  if(all.length===0){
-    return { ok: true, status: "GENESIS - no entries yet", count: 0, storage: "JSONL on disk ready" };
+  if(all.length === 0){
+    return { ok: true, status: "GENESIS - no entries yet", count: 0, storage: "JSONL on disk" };
   }
-  for(let i=1;i<all.length;i++){
-    if(all[i].prevHash !== all[i-1].hash){
-      return { ok: false, status: `CHAIN_BROKEN at ${i}`, count: all.length };
-    }
+  let prev = "GENESIS";
+  for(let i = 0; i < all.length; i++){
+    const e = all[i];
+    if(e.prevHash !== prev) return { ok: false, status: `CHAIN_BROKEN at ${i} - prevHash mismatch`, count: all.length };
+    const recomputed = sha256(`${e.prevHash}:${e.prompt}:${e.response}:${e.ts}`);
+    if(recomputed !== e.hash) return { ok: false, status: `CHAIN_BROKEN at ${i} - entry content tampered`, count: all.length };
+    prev = e.hash;
   }
-  return { ok: true, status: `CHAIN_OK - ${all.length} entries - JSONL PERSISTED`, count: all.length, lastHash: all[all.length-1].hash, storage: "JSONL on disk - survives restart" };
+  return { ok: true, status: `CHAIN_OK - ${all.length} entries - RECOMPUTED - JSONL PERSISTED`, count: all.length, lastHash: prev, storage: "JSONL on disk - survives restart - hash recomputable" };
 }
 
 export function redactPII(text){
   if(!text) return text;
-  // Phase2: NID 14 + Phone 11 (Egyptian)
   let out = text.replace(/\b\d{14}\b/g, "[NID_REDACTED]");
   out = out.replace(/\b01\d{9}\b/g, "[PHONE_REDACTED]");
   out = out.replace(/\b\d{11,}\b/g, "[REDACTED]");
@@ -105,7 +107,7 @@ export async function chat({ prompt, url }){
   }
   if(!prompt || typeof prompt !== "string") throwSovereign("BAD_REQUEST", "BLOCKED", "prompt required");
   const prevHash = auditLastHash();
-  let responseText;
+  let fullResponse;
   try{
     const res = await fetch("http://127.0.0.1:11434/api/generate", {
       method: "POST",
@@ -114,16 +116,26 @@ export async function chat({ prompt, url }){
     });
     if(!res.ok) throw new Error(`ollama http ${res.status}`);
     const data = await res.json();
-    responseText = data.response || "OK";
+    fullResponse = String(data?.response || "OK");
   }catch(e){
     throwSovereign("MODEL_UNAVAILABLE", "BLOCKED", `local model ${MODEL} not running: ${e.message}`);
   }
-  // FIX #3: ts واحد يستخدم في الحساب والتخزين - قابل لإعادة الحساب
+  const fullPrompt = String(prompt || "");
+  // LOG-ONLY REDACTION (Phase 5 doctrine): caller keeps full text, the audit log never stores raw PII
+  const storedPrompt = redactPII(fullPrompt).slice(0, 500);
+  const storedResponse = redactPII(fullResponse).slice(0, 2000);
   const ts = Date.now();
-  const payload = `${prevHash}:${prompt}:${responseText}:${ts}`;
+  const payload = `${prevHash}:${storedPrompt}:${storedResponse}:${ts}`;
   const hash = sha256(payload);
-  const entry = { prevHash, hash, ts, prompt: prompt.slice(0,500), response: responseText.slice(0,2000), model: MODEL, decision: "OK", code: "OK" };
+  const entry = {
+    prevHash, hash,
+    prompt: storedPrompt,
+    response: storedResponse,
+    model: MODEL,
+    decision: "OK", code: "OK",
+    ts
+  };
   auditAppend(entry);
   memoryChain.push(entry);
-  return { response: responseText, decision: "OK", model: MODEL, prevHash, hash, ts, code: "OK" };
+  return { response: fullResponse, decision: "OK", model: MODEL, prevHash, hash, ts, code: "OK", audit: entry };
 }
