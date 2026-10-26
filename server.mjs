@@ -34,11 +34,6 @@ async function readJson(req) {
   catch { throw new HttpError(400, "BAD_JSON", "invalid JSON body"); }
 }
 
-const clampInt = (v, min, max, dflt) => {
-  const n = Math.round(Number(v));
-  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : dflt;
-};
-
 async function renderVideo(req, res) {
   const b = await readJson(req);
   const prompt = typeof b.prompt === "string" ? b.prompt.trim() : "";
@@ -61,7 +56,7 @@ async function renderVideo(req, res) {
 
   const text = await r.text();
   let data = null;
-  try { data = JSON.parse(text); } catch { /* non-JSON reply */ }
+  try { data = JSON.parse(text); } catch {}
   if (!r.ok || !data) throw new HttpError(502, "VIDEO_ENGINE_ERROR", `engine ${r.status}: ${text.slice(0, 300)}`);
 
   const rel = data.video_url ?? data.videoUrl;
@@ -71,7 +66,6 @@ async function renderVideo(req, res) {
 
 http.createServer(async (req, res) => {
   try {
-    // ✅ إصلاح 3: خدمة cinema.html + chat.html + /
     if (req.method === "GET" && (req.url === "/" || req.url === "/cinema.html" || req.url === "/chat.html")) {
       const fileMap = {
         "/": "./public/cinema.html",
@@ -84,8 +78,8 @@ http.createServer(async (req, res) => {
 
     if (req.method === "POST" && req.url === "/api/sovereign-chat") {
       const b = await readJson(req);
-      // ✅ يدعم prompt و message — يمنع بحيرة undefined
       const prompt = (b.prompt ?? b.message ?? "").toString().trim();
+      if (!prompt) throw new HttpError(400, "NO_PROMPT", "prompt required");
       const out = await chat({ prompt, url: "http://127.0.0.1:11434" });
       return send(res, 200, out);
     }
@@ -96,10 +90,9 @@ http.createServer(async (req, res) => {
 
     send(res, 404, { error: "not found" });
   } catch (e) {
-    // ✅ إصلاح 2: تمييز الحظر — POLICY_BLOCKED يرجع 403 مش 503
-    const isPolicyBlocked = e.code === "POLICY_BLOCKED" || e.message?.includes("POLICY_BLOCKED");
+    const isPolicyBlocked = e.code === "POLICY_BLOCKED" || String(e.message || "").includes("POLICY_BLOCKED");
     const status = e instanceof HttpError ? e.status : (isPolicyBlocked ? 403 : e.code === "BAD_REQUEST" ? 400 : 503);
     const code = isPolicyBlocked ? "POLICY_BLOCKED" : (e.code || "ERROR");
     send(res, status, { error: code, message: String(e.message || e) });
   }
-}).listen(PORT, "127.0.0.1", () => console.log(`Cinema Studio: http://localhost:${PORT}/cinema.html + /chat.html  (video engine: ${VIDEO_ENGINE}${VIDEO_PATH})`));
+}).listen(PORT, "127.0.0.1", () => console.log(`Cinema Studio: http://localhost:${PORT}/cinema.html + /chat.html (video engine: ${VIDEO_ENGINE}${VIDEO_PATH})`));
