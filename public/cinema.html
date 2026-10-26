@@ -1,4 +1,6 @@
-﻿<!doctype html>
+﻿cd D:\elmahrosa-repos\elmahrosa-sovereign-si
+@'
+<!doctype html>
 <html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
@@ -20,6 +22,7 @@
   button.primary { background:var(--gold); color:#111; }
   button:disabled { opacity:.5; cursor:wait; }
   pre { white-space:pre-wrap; word-break:break-word; background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px; min-height:60px; margin:0; }
+  video { width:100%; max-height:80vh; background:#000; border-radius:8px; display:none; }
   .bar { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
   small { opacity:.6; }
 </style>
@@ -27,21 +30,26 @@
 <body>
 <main>
   <h1>TEOS Cinema Studio</h1>
-  <p class="sub">Camera + lens + aperture &rarr; cinematic prompt. Built locally, sent to the sovereign gateway only when you click Send.</p>
+  <p class="sub">Camera + lens + aperture &rarr; cinematic prompt (built locally). Send rewrites it with the local model; Render sends it to the video engine.</p>
 
   <div class="grid">
-    <div><label for="camera">Camera / Film</label>
-      <select id="camera"></select></div>
-    <div><label for="lens">Lens type</label>
-      <select id="lens"></select></div>
-    <div><label for="focal">Focal length</label>
-      <select id="focal"></select></div>
-    <div><label for="aperture">Aperture</label>
-      <select id="aperture"></select></div>
-    <div><label for="light">Lighting</label>
-      <select id="light"></select></div>
-    <div><label for="move">Camera movement</label>
-      <select id="move"></select></div>
+    <div><label for="camera">Camera / Film</label><select id="camera"></select></div>
+    <div><label for="lens">Lens type</label><select id="lens"></select></div>
+    <div><label for="focal">Focal length</label><select id="focal"></select></div>
+    <div><label for="aperture">Aperture</label><select id="aperture"></select></div>
+    <div><label for="light">Lighting</label><select id="light"></select></div>
+    <div><label for="move">Camera movement</label><select id="move"></select></div>
+    <div><label for="size">Resolution</label>
+      <select id="size">
+        <option value="1920x1080">1920x1080 (landscape)</option>
+        <option value="1280x720">1280x720 (landscape, faster)</option>
+        <option value="1080x1920">1080x1920 (vertical)</option>
+      </select></div>
+    <div><label for="fps">FPS</label>
+      <select id="fps">
+        <option value="24" selected>24 (cinema)</option>
+        <option value="30">30</option>
+      </select></div>
   </div>
 
   <div class="row"><label for="subject">Subject / scene</label>
@@ -51,10 +59,12 @@
     <button class="primary" id="build">Build prompt</button>
     <button id="copy">Copy</button>
     <button id="send">Send to sovereign-chat</button>
+    <button class="primary" id="render">Render video</button>
   </div>
 
   <div class="row"><label>Cinematic prompt</label><pre id="out"></pre></div>
-  <div class="row"><label>Gateway response</label><pre id="resp"></pre></div>
+  <div class="row"><label>Status / response</label><pre id="resp"></pre></div>
+  <div class="row"><video id="vid" controls loop></video></div>
   <small>API base: <span id="apibase"></span> (override with ?api=http://host:port)</small>
 </main>
 
@@ -84,6 +94,9 @@ const API = (q.get("api") || "").replace(/\/$/, "");
 document.getElementById("apibase").textContent = API || "(same origin)";
 
 const val = id => document.getElementById(id).value;
+const out = document.getElementById("out");
+const resp = document.getElementById("resp");
+const vid = document.getElementById("vid");
 
 function depthNote(ap) {
   if (ap === "f/1.4" || ap === "f/2") return "very shallow depth of field, creamy bokeh";
@@ -101,10 +114,20 @@ function buildPrompt() {
   ].join("\n");
 }
 
-const out = document.getElementById("out");
-const resp = document.getElementById("resp");
+async function postJson(path, payload) {
+  const r = await fetch(`${API}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  let data = null;
+  try { data = await r.json(); } catch (e) { /* non-JSON */ }
+  if (!r.ok) throw new Error((data && (data.message || data.error)) || ("HTTP " + r.status));
+  return data;
+}
 
 document.getElementById("build").onclick = () => { out.textContent = buildPrompt(); };
+
 document.getElementById("copy").onclick = async () => {
   out.textContent = buildPrompt();
   try { await navigator.clipboard.writeText(out.textContent); } catch (e) { resp.textContent = "Copy failed: " + e.message; }
@@ -115,14 +138,32 @@ document.getElementById("send").onclick = async (ev) => {
   out.textContent = buildPrompt();
   btn.disabled = true; resp.textContent = "...";
   try {
-    const r = await fetch(`${API}/api/sovereign-chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: "Rewrite the following camera setup as ONE detailed, vivid English prompt for an AI video generator (max 120 words). Describe composition, light, atmosphere and motion. Do not explain or analyze the setup. Output only the final prompt.\n\n" + out.textContent })
+    const data = await postJson("/api/sovereign-chat", {
+      prompt: "Rewrite the following camera setup as ONE detailed, vivid English prompt for an AI video generator (max 120 words). Describe composition, light, atmosphere and motion. Do not explain or analyze the setup. Output only the final prompt.\n\n" + out.textContent
     });
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    const data = await r.json();
     resp.textContent = data.response ?? JSON.stringify(data, null, 2);
+  } catch (e) {
+    resp.textContent = "Error: " + e.message;
+  } finally { btn.disabled = false; }
+};
+
+document.getElementById("render").onclick = async (ev) => {
+  const btn = ev.currentTarget;
+  out.textContent = buildPrompt();
+  const [width, height] = val("size").split("x").map(Number);
+  btn.disabled = true; vid.style.display = "none"; vid.removeAttribute("src");
+  resp.textContent = `RENDERING ${width}x${height} @ ${val("fps")}fps ... (can take minutes)`;
+  try {
+    const data = await postJson("/api/cinema-render", {
+      prompt: out.textContent, width, height, fps: Number(val("fps"))
+    });
+    const url = typeof data.videoUrl === "string" ? data.videoUrl : "";
+    if (/^https?:\/\//i.test(url)) {
+      vid.src = url; vid.style.display = "block"; vid.load();
+      resp.textContent = "DONE: " + url;
+    } else {
+      resp.textContent = "Engine replied without a valid videoUrl:\n" + JSON.stringify(data, null, 2);
+    }
   } catch (e) {
     resp.textContent = "Error: " + e.message;
   } finally { btn.disabled = false; }
@@ -132,5 +173,5 @@ out.textContent = buildPrompt();
 </script>
 </body>
 </html>
-
-
+'@ | Set-Content -Path public\cinema.html -Encoding UTF8
+Select-String -Path public\cinema.html -Pattern 'id="render"|/api/cinema-render|id="vid"' | Select-Object LineNumber
