@@ -8,10 +8,9 @@ const VIDEO_PATH = process.env.VIDEO_ENGINE_PATH || "/api/generate";
 const RENDER_TIMEOUT_MS = Number(process.env.RENDER_TIMEOUT_MS || 600000);
 const MAX_BODY = 100_000;
 
-// Sovereign policy: video engine must be local unless explicitly allowed
 const engineHost = new URL(VIDEO_ENGINE).hostname;
-if (!["127.0.0.1", "localhost"].includes(engineHost) && process.env.ALLOW_REMOTE_ENGINE !== "1") {
-  console.error(`BLOCKED: VIDEO_ENGINE_URL host "${engineHost}" is not local (set ALLOW_REMOTE_ENGINE=1 to override)`);
+if (!["127.0.0.1", "localhost"].includes(engineHost)) {
+  console.error(`BLOCKED: VIDEO_ENGINE_URL host "${engineHost}" is not local - remote engine forbidden by sovereign policy`);
   process.exit(1);
 }
 
