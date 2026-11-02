@@ -8,7 +8,7 @@ test("doctor must report EGYPT_ONLY + LOCKED 1.0.0-LOCKED", () => {
   const d = doctor();
   assert.equal(d.mode, "EGYPT_ONLY");
   assert.equal(d.local, true);
-  assert.equal(d.default, "qwen3-27b");
+  assert.equal(d.default, "qwen3:8b");
   assert.ok(d.models >= 1);
   assert.equal(d.locked, "1.0.0-LOCKED");
 });
@@ -22,7 +22,7 @@ test("redactPII must redact NID / PHONE / CARD", () => {
 test("chat must return response + audit + model", async () => {
   const r = await chat("hello sovereign");
   assert.ok(String(r.response).length > 0);
-  assert.equal(r.model, "qwen3-27b");
+  assert.equal(r.model, "qwen3:8b");
   assert.ok(r.audit);
   assert.ok(r.audit.hash);
   assert.ok(r.audit.ts);

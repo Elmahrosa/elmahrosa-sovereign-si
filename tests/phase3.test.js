@@ -14,7 +14,7 @@ test("PHASE-GATE: failClosed must be true", () => {
 
 test("PHASE-GATE: MODEL_REGISTRY must exist with default brain", () => {
   assert.ok(MODEL_REGISTRY);
-  assert.ok(MODEL_REGISTRY["qwen3-27b"]);
+  assert.ok(MODEL_REGISTRY["qwen3:8b"]);
   assert.equal(Object.keys(MODEL_REGISTRY).length, 8);
 });
 
@@ -22,7 +22,7 @@ test("PHASE-4: doctor must report EGYPT_ONLY / LOCAL_ONLY / 8 models", () => {
   const d = doctor();
   assert.equal(d.mode, "EGYPT_ONLY");
   assert.equal(d.local, true);
-  assert.equal(d.default, "qwen3-27b");
+  assert.equal(d.default, "qwen3:8b");
   assert.equal(d.models, 8);
 });
 
@@ -41,7 +41,7 @@ test("PHASE-5: redactPII must redact card", () => {
 test("PHASE-5: chat must return response + audit + model", async () => {
   const r = await chat("phase5 chat");
   assert.ok(r.audit);
-  assert.equal(r.model, "qwen3-27b");
+  assert.equal(r.model, "qwen3:8b");
 });
 
 test("PHASE-5: audit entry must have prevHash + hash + ts + model + mode", async () => {
@@ -50,7 +50,7 @@ test("PHASE-5: audit entry must have prevHash + hash + ts + model + mode", async
   assert.ok(last.prevHash);
   assert.ok(last.hash);
   assert.ok(last.ts);
-  assert.equal(last.model, "qwen3-27b");
+  assert.equal(last.model, "qwen3:8b");
   assert.equal(last.mode, "EGYPT_ONLY");
 });
 

@@ -10,7 +10,7 @@ export const failClosed = true
 
 // أيمن: مش مربوط ببلد - مربوط بالأقوى - Qwen default
 export const MODEL_REGISTRY = {
-  'qwen3-27b': { id: 'Qwen/Qwen3-27B', type: 'brain', params: '27B', license: 'Apache-2.0', active: '27B', status: 'default', why: 'strongest multilingual + Arabic + code' },
+  'qwen3:8b': { id: 'qwen3:8b', type: 'brain', size: '5.2GB', local: true, provider: 'ollama', default: true, description: 'Sovereign Node - Alexandria, Egypt' },
   'qwen3-30b-a3b': { id: 'Qwen/Qwen3-30B-A3B', type: 'code-agent', params: '30.5B total / 3.3B active', license: 'Apache-2.0', status: 'installed', why: '91% of 235B flagship, 10x cheaper' },
   'qwen3-235b-a22b': { id: 'Qwen/Qwen3-235B-A22B', type: 'flagship-moe', params: '235B/22B active', license: 'Qwen', status: 'optional', why: 'neck-to-neck Gemini 2.5 Pro' },
   'qwen3-asr-1.7b': { id: 'Qwen/Qwen3-ASR-1.7B', type: 'asr-ear', params: '1.7B', langs: 201, status: 'ear-default', why: 'strongest open ASR > Whisper' },
@@ -20,7 +20,7 @@ export const MODEL_REGISTRY = {
   'deepseek-v3': { id: 'deepseek-ai/DeepSeek-V3', type: 'code-fallback', note: 'code heavy' },
 }
 
-export const MODEL = 'qwen3-27b'
+export const MODEL = 'qwen3:8b'
 export const ASR_MODEL = 'qwen3-asr-1.7b'
 
 function sha256(s) {
