@@ -1,15 +1,16 @@
-﻿[CmdletBinding()]
-param([string]$ModelsPath="./models",[string]$ManifestPath="./models/manifest.json",[string[]]$Only=@())
-$manifest=Get-Content $ManifestPath -Raw | ConvertFrom-Json
-function Get-FileSha256($Path){$s=[Security.Cryptography.SHA256]::Create();$st=[IO.File]::OpenRead($Path);try{($s.ComputeHash($st)|%{$_.ToString('x2')})-join''}finally{$st.Dispose()}}
-foreach($p in $manifest.models.PSObject.Properties){
- $id=$p.Name; $e=$p.Value
- if($Only.Count -gt 0 -and $Only -notcontains $id){continue}
- $t=Join-Path $ModelsPath $e.file
- if((Test-Path $t) -and (Get-FileSha256 $t)-eq $e.sha256){Write-Host "[ok] $id verified" -F Green;continue}
- Write-Host "[get] $id : $($e.url)" -F Cyan
- Invoke-WebRequest -Uri $e.url -OutFile $t -UseBasicParsing
- $a=Get-FileSha256 $t
- if($a -ne $e.sha256){Remove-Item $t -Force;Write-Host "[FAIL] sha mismatch" -F Red;exit 2}
- Write-Host "[done] $id verified at $t" -F Green
-}
+﻿# Elmahrosa Sovereign SI - Download Strongest Local Models
+# Requires: huggingface-cli (pip install huggingface_hub[cli])
+
+$modelsDir = ".\models"
+New-Item -ItemType Directory -Force -Path $modelsDir | Out-Null
+
+Write-Host "Downloading Qwen3-27B (default brain) - Apache 2.0..."
+huggingface-cli download Qwen/Qwen3-27B --local-dir "$modelsDir/qwen3-27b" --local-dir-use-symlinks False
+
+Write-Host "Downloading Qwen3-30B-A3B (code-agent, 3.3B active)..."
+huggingface-cli download Qwen/Qwen3-30B-A3B --local-dir "$modelsDir/qwen3-30b-a3b" --local-dir-use-symlinks False
+
+Write-Host "Downloading Qwen3-ASR-1.7B (ear, 201 langs)..."
+huggingface-cli download Qwen/Qwen3-ASR-1.7B --local-dir "$modelsDir/qwen3-asr-1.7b" --local-dir-use-symlinks False
+
+Write-Host "All strongest models local - EGYPT_ONLY"

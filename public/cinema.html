@@ -1,6 +1,4 @@
-﻿cd D:\elmahrosa-repos\elmahrosa-sovereign-si
-@'
-<!doctype html>
+﻿<!doctype html>
 <html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
@@ -173,5 +171,3 @@ out.textContent = buildPrompt();
 </script>
 </body>
 </html>
-'@ | Set-Content -Path public\cinema.html -Encoding UTF8
-Select-String -Path public\cinema.html -Pattern 'id="render"|/api/cinema-render|id="vid"' | Select-Object LineNumber
