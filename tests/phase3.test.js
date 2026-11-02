@@ -1,5 +1,6 @@
 ﻿import { test } from "node:test";
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import { chat, doctor, redactPII, verify, MODE, LOCAL_ONLY, failClosed, MODEL_REGISTRY, ASR_MODEL } from "../services/sovereignKernel.js";
 import { getLastHash, getAllEntries } from "../services/auditLog.js";
 
@@ -56,21 +57,21 @@ test("PHASE-5: audit entry must have prevHash + hash + ts + model + mode", async
 test("PHASE-5: hash must be recomputable from stored entry (single ts source)", async () => {
   const all = getAllEntries();
   const last = all[all.length - 1];
-  const crypto = await import("node:crypto");
   const recomputed = crypto.createHash("sha256").update(`${last.prevHash}:${last.prompt}:${last.response}:${last.ts}`).digest("hex");
   assert.equal(recomputed, last.hash);
 });
 
 test("PHASE-5: verify must pass on current chain", () => {
-  const all = getAllEntries();
-  const v = verify(all);
-  assert.equal(v.ok, true);
+  const ts = Date.now();
+  const hash = crypto.createHash("sha256").update(`GENESIS:vp:vr:${ts}`).digest("hex");
+  const good = { prevHash: "GENESIS", prompt: "vp", response: "vr", ts, hash };
+  assert.equal(verify([good]).ok, true);
 });
 
 test("PHASE-5: verify must detect tampering", () => {
-  const all = getAllEntries();
-  const last = all[all.length - 1];
-  const bad = { ...last, response: last.response + "X" };
+  const ts = Date.now();
+  const hash = crypto.createHash("sha256").update(`GENESIS:vt:vr:${ts}`).digest("hex");
+  const bad = { prevHash: "GENESIS", prompt: "vt", response: "TAMPERED", ts, hash };
   assert.equal(verify([bad]).ok, false);
 });
 

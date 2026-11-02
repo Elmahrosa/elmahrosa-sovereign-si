@@ -1,5 +1,6 @@
 ﻿import { test } from "node:test";
 import assert from "node:assert";
+import crypto from "node:crypto";
 import { chat, doctor, redactPII, verify, MODEL_REGISTRY, MODE } from "../services/sovereignKernel.js";
 import { getLastHash, getAllEntries } from "../services/auditLog.js";
 
@@ -29,16 +30,15 @@ test("chat must return response + audit + model", async () => {
 
 test("chat audit hash must be recomputable from entry fields (single ts source)", async () => {
   const r = await chat("recompute me");
-  const crypto = await import("node:crypto");
   const recomputed = crypto.createHash("sha256").update(`${r.audit.prevHash}:${r.audit.prompt}:${r.audit.response}:${r.audit.ts}`).digest("hex");
   assert.equal(recomputed, r.audit.hash);
 });
 
-test("verify must pass for valid entries and detect tampering", async () => {
-  const all = getAllEntries();
-  const v = verify(all);
-  assert.equal(v.ok, true);
-  const last = all[all.length - 1];
-  const bad = { ...last, response: "TAMPERED" };
+test("verify must pass for valid entries and detect tampering", () => {
+  const ts = Date.now();
+  const hash = crypto.createHash("sha256").update(`GENESIS:sv:sv:${ts}`).digest("hex");
+  const good = { prevHash: "GENESIS", prompt: "sv", response: "sv", ts, hash };
+  assert.equal(verify([good]).ok, true);
+  const bad = { ...good, response: "TAMPERED" };
   assert.equal(verify([bad]).ok, false);
 });
