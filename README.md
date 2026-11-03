@@ -27,7 +27,7 @@ npm run doctor:ci      # offline checks used by CI
 ```
 Release zips are built with `scripts/build-release.ps1` (from git, reproducible) and published as GitHub release assets with a `.sha256` file:
 ```powershell
-Get-FileHash .\elmahrosa-sovereign-si-v1.0.0.zip -Algorithm SHA256
+Get-FileHash .\elmahrosa-sovereign-si-<version>.zip -Algorithm SHA256
 ```
 
 ## Limits (read before relying on it)
