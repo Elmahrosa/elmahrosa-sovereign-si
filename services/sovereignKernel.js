@@ -49,14 +49,68 @@ export function verify(entries) {
   return { ok: true }
 }
 
-export async function chat(prompt) {
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]'])
+
+// Calls the LOCAL Ollama server only. Refuses any non-loopback URL (EGYPT_ONLY / LOCAL_ONLY).
+async function callOllama(prompt, url) {
+  let u
+  try { u = new URL(url) } catch {
+    throw Object.assign(new Error('Blocked: invalid engine URL'), { code: 'POLICY_BLOCKED' })
+  }
+  if (u.protocol !== 'http:' || !LOOPBACK_HOSTS.has(u.hostname) || u.username || u.password) {
+    throw Object.assign(new Error('Blocked: engine must be loopback'), { code: 'POLICY_BLOCKED' })
+  }
+  let r
+  try {
+    r = await fetch(u.origin + '/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        stream: false,
+        think: false
+      }),
+      redirect: 'error',
+      signal: AbortSignal.timeout(120000)
+    })
+  } catch (e) {
+    throw Object.assign(new Error(`MODEL_UNAVAILABLE: ${e.message}`), { code: 'MODEL_UNAVAILABLE' })
+  }
+  if (!r.ok) throw Object.assign(new Error(`MODEL_ERROR: ollama status ${r.status}`), { code: 'MODEL_ERROR' })
+  let data
+  try { data = await r.json() } catch {
+    throw Object.assign(new Error('MODEL_BAD_RESPONSE: not JSON'), { code: 'MODEL_BAD_RESPONSE' })
+  }
+  const text = data && data.message && data.message.content
+  if (typeof text !== 'string') {
+    throw Object.assign(new Error('MODEL_BAD_RESPONSE: no message.content'), { code: 'MODEL_BAD_RESPONSE' })
+  }
+  return text.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+}
+
+// chat('text')            -> offline deterministic stub (used by tests, simulated: true)
+// chat({ prompt, url })   -> real answer from the local model, audited
+export async function chat(input) {
   if (MODE !== 'EGYPT_ONLY') throw Object.assign(new Error('Blocked'), { code: 'POLICY_BLOCKED' })
+  const { prompt, url } = typeof input === 'string' ? { prompt: input, url: undefined } : (input || {})
+  if (typeof prompt !== 'string' || !prompt.trim()) {
+    throw Object.assign(new Error('prompt required'), { code: 'BAD_REQUEST' })
+  }
+
+  // Model call first: the read-hash + append below must stay synchronous (no await in between).
+  const reply = url ? await callOllama(prompt, url) : null
+
   const prevHash = getLastHash()
   const ts = Date.now() // SINGLE SOURCE - FIX CRITICAL #2
   const storedPrompt = redactPII(prompt)
-  const storedResponse = `[${MODEL} local] ${prompt.slice(0,100)}... response`.slice(0,2000)
+  const storedResponse = reply === null
+    ? `[${MODEL} local] ${prompt.slice(0,100)}... response`.slice(0,2000)
+    : redactPII(reply)
   const hash = sha256(`${prevHash}:${storedPrompt}:${storedResponse}:${ts}`)
   const entry = { prevHash, prompt: storedPrompt, response: storedResponse, ts, hash, model: MODEL, mode: MODE }
   auditAppend(entry)
-  return { response: storedResponse, audit: entry, model: MODEL }
+  return reply === null
+    ? { response: storedResponse, audit: entry, model: MODEL, simulated: true }
+    : { response: reply, audit: entry, model: MODEL }
 }
