@@ -120,7 +120,14 @@ function localVideoUrl(rel) {
 async function renderVideo(req, res) {
   const b = await readJson(req);
   const prompt = readPrompt(b);
-  const payload = { topic: prompt, voice: typeof b.voice === "string" ? b.voice.slice(0, 64) : undefined };
+  const int = (v, min, max) => (Number.isInteger(v) && v >= min && v <= max ? v : undefined);
+  const payload = {
+    topic: prompt,
+    voice: typeof b.voice === "string" ? b.voice.slice(0, 64) : undefined,
+    width: int(b.width, 64, 3840),
+    height: int(b.height, 64, 3840),
+    fps: int(b.fps, 1, 60)
+  };
 
   let r;
   try {
@@ -182,7 +189,7 @@ const server = http.createServer(async (req, res) => {
   } catch (e) {
     if (!(e instanceof HttpError)) console.error(e);
     const isPolicyBlocked = e?.code === "POLICY_BLOCKED" || String(e?.message || "").includes("POLICY_BLOCKED");
-    const status = e instanceof HttpError ? e.status : (isPolicyBlocked ? 403 : e?.code === "BAD_REQUEST" ? 400 : 503);
+    const status = e instanceof HttpError ? e.status : (isPolicyBlocked ? 403 : e?.code === "BAD_REQUEST" ? 400 : (e?.code === "MODEL_ERROR" || e?.code === "MODEL_BAD_RESPONSE") ? 502 : 503);
     const code = isPolicyBlocked ? "POLICY_BLOCKED" : (e?.code || "ERROR");
     send(res, status, { error: code, message: String(e?.message || e) });
   }

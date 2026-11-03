@@ -1,16 +1,8 @@
-﻿# Elmahrosa Sovereign SI - Download Strongest Local Models
-# Requires: huggingface-cli (pip install huggingface_hub[cli])
-
-$modelsDir = ".\models"
-New-Item -ItemType Directory -Force -Path $modelsDir | Out-Null
-
-Write-Host "Downloading Qwen3-27B (default brain) - Apache 2.0..."
-huggingface-cli download Qwen/Qwen3-27B --local-dir "$modelsDir/qwen3-27b" --local-dir-use-symlinks False
-
-Write-Host "Downloading Qwen3-30B-A3B (code-agent, 3.3B active)..."
-huggingface-cli download Qwen/Qwen3-30B-A3B --local-dir "$modelsDir/qwen3-30b-a3b" --local-dir-use-symlinks False
-
-Write-Host "Downloading Qwen3-ASR-1.7B (ear, 201 langs)..."
-huggingface-cli download Qwen/Qwen3-ASR-1.7B --local-dir "$modelsDir/qwen3-asr-1.7b" --local-dir-use-symlinks False
-
-Write-Host "All strongest models local - EGYPT_ONLY"
+# Elmahrosa Sovereign SI - one-time model setup (needs internet ONCE; afterwards fully offline)
+$ErrorActionPreference = 'Stop'
+if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
+  Write-Error 'Ollama is not installed. Install it from https://ollama.com first.'
+}
+Write-Host 'Pulling default model qwen3:8b (~5.2 GB)...'
+ollama pull qwen3:8b
+Write-Host 'Done. Verify with: npm run doctor'

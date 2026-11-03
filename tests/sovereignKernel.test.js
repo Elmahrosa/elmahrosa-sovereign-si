@@ -1,4 +1,6 @@
-﻿import { test } from "node:test";
+import os from "node:os"; import path from "node:path";
+process.env.TEOS_AUDIT_PATH = path.join(os.tmpdir(), `teos-audit-${process.pid}.jsonl`);
+import { test } from "node:test";
 import assert from "node:assert";
 import crypto from "node:crypto";
 import { chat, doctor, redactPII, verify, MODEL_REGISTRY, MODE } from "../services/sovereignKernel.js";

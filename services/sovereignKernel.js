@@ -11,7 +11,7 @@ export const failClosed = true
 // أيمن: مش مربوط ببلد - مربوط بالأقوى - Qwen default
 export const MODEL_REGISTRY = {
   'qwen3:8b': { id: 'qwen3:8b', type: 'brain', size: '5.2GB', local: true, provider: 'ollama', default: true, description: 'Sovereign Node - Alexandria, Egypt' },
-  'qwen3-30b-a3b': { id: 'Qwen/Qwen3-30B-A3B', type: 'code-agent', params: '30.5B total / 3.3B active', license: 'Apache-2.0', status: 'installed', why: '91% of 235B flagship, 10x cheaper' },
+  'qwen3-30b-a3b': { id: 'Qwen/Qwen3-30B-A3B', type: 'code-agent', params: '30.5B total / 3.3B active', license: 'Apache-2.0', status: 'optional', why: '91% of 235B flagship, 10x cheaper' },
   'qwen3-235b-a22b': { id: 'Qwen/Qwen3-235B-A22B', type: 'flagship-moe', params: '235B/22B active', license: 'Qwen', status: 'optional', why: 'neck-to-neck Gemini 2.5 Pro' },
   'qwen3-asr-1.7b': { id: 'Qwen/Qwen3-ASR-1.7B', type: 'asr-ear', params: '1.7B', langs: 201, status: 'ear-default', why: 'strongest open ASR > Whisper' },
   'qwen3-asr-0.6b': { id: 'Qwen/Qwen3-ASR-0.6B', type: 'asr-fast', params: '0.6B', status: 'real-time' },
@@ -27,9 +27,21 @@ function sha256(s) {
   return crypto.createHash('sha256').update(s).digest('hex')
 }
 
+function normalizeDigits(s) {
+  return s
+    .replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660))   // Arabic-Indic
+    .replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06F0))   // Persian
+}
+
+// Redacts BEFORE truncating so a number straddling the cut cannot leak. Handles Arabic digits,
+// +20 numbers and card numbers written with spaces or dashes.
 export function redactPII(text) {
   if (!text) return ''
-  return text.slice(0, 500).replace(/\b\d{14}\b/g, '[NID]').replace(/\b01\d{9}\b/g, '[PHONE]').replace(/\b\d{16}\b/g, '[CARD]')
+  return normalizeDigits(String(text))
+    .replace(/(?<!\d)(?:\d[ -]?){15}\d(?!\d)/g, '[CARD]')
+    .replace(/(?<!\d)\d{14}(?!\d)/g, '[NID]')
+    .replace(/(?<!\d)(?:\+?20|0)1\d{9}(?!\d)/g, '[PHONE]')
+    .slice(0, 500)
 }
 
 export function doctor() {
@@ -98,19 +110,31 @@ export async function chat(input) {
     throw Object.assign(new Error('prompt required'), { code: 'BAD_REQUEST' })
   }
 
-  // Model call first: the read-hash + append below must stay synchronous (no await in between).
-  const reply = url ? await callOllama(prompt, url) : null
+    // Every attempt is recorded, including blocked/failed ones. The read-hash + append must stay synchronous.
+  function record(storedResponse, extra = {}) {
+    const prevHash = getLastHash()           // throws AUDIT_CORRUPT if the log is damaged (fail-closed)
+    const ts = Date.now()                    // SINGLE SOURCE of time for hash + stored entry
+    const storedPrompt = redactPII(prompt)
+    const hash = sha256(`${prevHash}:${storedPrompt}:${storedResponse}:${ts}`)
+    const entry = { prevHash, prompt: storedPrompt, response: storedResponse, ts, hash, model: MODEL, mode: MODE, ...extra }
+    auditAppend(entry)
+    return entry
+  }
 
-  const prevHash = getLastHash()
-  const ts = Date.now() // SINGLE SOURCE - FIX CRITICAL #2
-  const storedPrompt = redactPII(prompt)
-  const storedResponse = reply === null
-    ? `[${MODEL} local] ${prompt.slice(0,100)}... response`.slice(0,2000)
-    : redactPII(reply)
-  const hash = sha256(`${prevHash}:${storedPrompt}:${storedResponse}:${ts}`)
-  const entry = { prevHash, prompt: storedPrompt, response: storedResponse, ts, hash, model: MODEL, mode: MODE }
-  auditAppend(entry)
-  return reply === null
-    ? { response: storedResponse, audit: entry, model: MODEL, simulated: true }
-    : { response: reply, audit: entry, model: MODEL }
+  let reply = null
+  if (url) {
+    try { reply = await callOllama(prompt, url) }
+    catch (e) {
+      record(`[ERROR:${e.code || 'ERROR'}]`, { status: 'ERROR' })
+      throw e
+    }
+  }
+
+  if (reply === null) {
+    const stub = `[${MODEL} local] ${prompt.slice(0, 100)}... response`.slice(0, 2000)
+    const entry = record(stub, { simulated: true })
+    return { response: stub, audit: entry, model: MODEL, simulated: true }
+  }
+  const entry = record(redactPII(reply))
+  return { response: reply, audit: entry, model: MODEL }
 }

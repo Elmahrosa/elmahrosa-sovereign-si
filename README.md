@@ -1,28 +1,38 @@
-# 🛡️ TEOS Sovereign SI - v1.0.0 LOCKED EGYPT_ONLY
+# TEOS Sovereign SI
 
-> **Built in Alexandria. Your code stays local.**
-> ELMAHROSA INTERNATIONAL - EST 2007 - Sovereignty First
+Local-only AI gateway for Windows. Prompts go to a model running on your own machine (Ollama, `127.0.0.1:11434`); nothing is sent to a cloud API.
 
-![Build](https://img.shields.io/badge/build-DOCTOR_PASS-green)
-![Models](https://img.shields.io/badge/models-qwen3%3A8b%20x8-blue)
-![SHA256](https://img.shields.io/badge/SHA256-DEF9913C-orange)
-![License](https://img.shields.io/badge/lock-EGYPT_ONLY-red)
+![CI](https://github.com/Elmahrosa/elmahrosa-sovereign-si/actions/workflows/doctor.yml/badge.svg)
 
-**TEOS SI is an offline Windows gateway. No cloud. No foreign API.**
+## What it does
+- `server.mjs` serves a chat page and Cinema Studio on `http://localhost:3100` (loopback only).
+- `services/sovereignKernel.js` is the policy layer: refuses any non-loopback engine URL, redacts Egyptian NID / phone / card numbers before logging, and writes every attempt (including blocked or failed ones) to a SHA-256 hash-chained audit log at `data/sovereign-audit.jsonl` (git-ignored). If the log is damaged, the kernel stops instead of restarting the chain.
+- Default model: `qwen3:8b` via Ollama. The other registry entries are optional and are not installed by default.
 
-### 🔒 LOCKED EGYPT_ONLY
-
-- **Offline-First:** Runs on `localhost:11434` - Ollama local
-- **FAIL_CLOSED:** No internet = No leak
-- **8 Models Local:** qwen3:8b sovereign stack
-- **Verified Release:** `v1.0.0-LOCKED-EGYPT_ONLY-REV2` - SHA256 `DEF9913C...`
-
-### 📦 Download Verified Gateway
-
-**Release:** [v1.0.0-LOCKED-EGYPT_ONLY-REV2](https://github.com/Elmahrosa/elmahrosa-sovereign-si/releases/tag/v1.0.0-LOCKED-EGYPT_ONLY-REV2)
-**File:** `el-mahrosa-sovereign-si-v1.0.0-LOCKED-EGYPT_ONLY.zip` (17.2 KB)
-**Hash:** `DEF9913C64A70622F477B91EE73107801C5BC8CA6F99F5934E9A10560395CF38`
-
+## Run
 ```powershell
-# Verify
-Get-FileHash el-mahrosa-sovereign-si-v1.0.0-LOCKED-EGYPT_ONLY.zip -Algorithm SHA256
+# one-time (needs internet once)
+./scripts/download-models.ps1      # installs Ollama model qwen3:8b
+# every time
+npm run doctor                     # checks policy, audit chain, Ollama + model
+npm start                          # http://localhost:3100/chat.html  and  /cinema.html
+```
+
+Optional video engine for Cinema Studio: set `VIDEO_ENGINE_URL` (loopback only, default `http://127.0.0.1:8000`).
+
+## Verify
+```powershell
+npm test
+npm run doctor:ci      # offline checks used by CI
+```
+Release zips are built with `scripts/build-release.ps1` (from git, reproducible) and published as GitHub release assets with a `.sha256` file:
+```powershell
+Get-FileHash .\elmahrosa-sovereign-si-v1.0.0.zip -Algorithm SHA256
+```
+
+## Limits (read before relying on it)
+- "Offline" means no outbound calls from this app. The one-time model download needs internet.
+- Redaction is pattern based (14-digit NID, Egyptian mobile, 16-digit card). It is not a complete PII detector.
+- The audit log is tamper-evident, not tamper-proof: someone with file access can delete the whole file.
+
+Built in Alexandria by Elmahrosa International.

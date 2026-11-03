@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
@@ -63,7 +63,7 @@
   <div class="row"><label>Cinematic prompt</label><pre id="out"></pre></div>
   <div class="row"><label>Status / response</label><pre id="resp"></pre></div>
   <div class="row"><video id="vid" controls loop></video></div>
-  <small>API base: <span id="apibase"></span> (override with ?api=http://host:port)</small>
+  <small>API: same origin (loopback only)</small>
 </main>
 
 <script>
@@ -87,9 +87,7 @@ for (const [id, list] of Object.entries(OPTIONS)) {
   }
 }
 
-const q = new URLSearchParams(location.search);
-const API = (q.get("api") || "").replace(/\/$/, "");
-document.getElementById("apibase").textContent = API || "(same origin)";
+const API = ""; // same origin only (loopback-only server; CSP blocks cross-origin calls)
 
 const val = id => document.getElementById(id).value;
 const out = document.getElementById("out");

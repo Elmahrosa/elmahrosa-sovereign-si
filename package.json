@@ -5,6 +5,11 @@
   "scripts": {
     "test": "node --test",
     "doctor": "node scripts/doctor.js",
-    "cinema": "node server.mjs"
+    "cinema": "node server.mjs",
+    "doctor:ci": "node scripts/doctor.js --offline",
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
