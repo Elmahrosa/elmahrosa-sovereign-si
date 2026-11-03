@@ -30,6 +30,7 @@ const log=document.getElementById('log'),q=document.getElementById('q'),form=doc
 function add(role,text){
   const d=document.createElement('div');
   d.className='msg '+(role==='user'?'user':role==='error'?'error':'bot');
+  d.dir='auto';
   d.textContent=text;
   log.appendChild(d);
   log.scrollTop=log.scrollHeight;
