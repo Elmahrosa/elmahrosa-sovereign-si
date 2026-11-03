@@ -1,35 +1,22 @@
-# Release v1.1.0 — `qwen3:8b` Local Sovereign
+# Release v1.0.1
 
-**Tag:** `v1.1.0-qwen3-8b-local`
-**Node:** Sovereign Node — Alexandria, Egypt
-**Data Residency:** EGYPT_ONLY — Local-only, fail-closed, no cloud, no API.
+**Tag:** `v1.0.1`
+**Default model:** `qwen3:8b` via Ollama (local)
+**Data residency:** local only. The server binds to 127.0.0.1 and refuses any non-loopback engine URL.
 
-## 🚀 Highlights
+## Fixes
+- Audit log is fail-closed: a corrupt log stops the kernel instead of restarting the chain.
+- Every attempt is audited, including blocked and failed calls.
+- PII redaction handles Arabic digits, +20 phone numbers, and cards with spaces or dashes, and redacts before truncating.
+- `npm run doctor` checks policy, the audit chain, Ollama, and that the model is pulled.
+- Video resolution and FPS are forwarded to the video engine.
+- Unused Next.js files removed (`app/`, `components/`).
+- Tests no longer write to the real audit log.
 
-- Default brain upgraded to **Qwen3 8B** (`qwen3:8b`) via Ollama — local, 5.2GB, `default: true`.
-- `MODEL_REGISTRY` now exposes **8 models** with `qwen3:8b` as the default sovereign brain.
+## Verification
+- `npm test`: 28/28 pass
+- CI runs on Ubuntu and Windows
+- SHA256 of the release zip: see the GitHub release page
 
-## ✅ Fixes
-
-- **Audit hash chain**: deterministic timestamp — single `Date.now()` source used for hash + stored entry (was double `Date.now()` causing chain mismatch).
-- **`public/cinema.html`**: removed leftover PowerShell here-string artifacts (`cd D:\...`, `@'`, `'@ | Set-Content...`, `Select-String...`); file now starts with `<!doctype html>` and ends with `</html>`.
-
-## 🧪 Verification
-
-- `npm test` → **21/21 PASS**
-- `npm run doctor` → **BEHAVIORAL PASS**
-- CI (`sovereign-doctor`) → **GREEN** (Run #27)
-
-## 🏷️ Tag
-
-- `v1.1.0-qwen3-8b-local` — Qwen3 8B local default.
-
-## 🔐 Sovereignty
-
-- LOCAL_ONLY / EGYPT_ONLY / failClosed.
-- No remote engine, no secrets, no ALLOW_REMOTE_ENGINE backdoor.
-- Audit log JSONL append-only, PII redacted, hash chain recomputable.
-
----
-
-**Built in Alexandria / Egypt. Nations own their code.**
+## Notes
+- v1.0.0-LOCKED-EGYPT_ONLY-REV2 is superseded: its chat endpoint was broken.
