@@ -1,79 +1,28 @@
-﻿# 🛡️ TEOS SI - TEOS SOVEREIGN IDENTITY - LOCKED EGYPT ONLY - REAL
+# 🛡️ TEOS Sovereign SI - v1.0.0 LOCKED EGYPT_ONLY
 
-![ELMAHROSA Seal - TEOS SI](seal.png)
+> **Built in Alexandria. Your code stays local.**
+> ELMAHROSA INTERNATIONAL - EST 2007 - Sovereignty First
 
-> **TEOS SI - TEOS SOVEREIGN IDENTITY - LOCKED EGYPT ONLY**
-> **مقفول مصر بس - لا يفتح برة مصر - سيادة مصرية 100%**
-> **ELMAHROSA INTERNATIONAL - المحروسة - أيمن سيف - EST 2007**
-> **السيادة أولاً - المحروسة - منارة إسكندرية - عنخ**
+![Build](https://img.shields.io/badge/build-DOCTOR_PASS-green)
+![Models](https://img.shields.io/badge/models-qwen3%3A8b%20x8-blue)
+![SHA256](https://img.shields.io/badge/SHA256-DEF9913C-orange)
+![License](https://img.shields.io/badge/lock-EGYPT_ONLY-red)
 
-## 🔒 LOCKED EGYPT ONLY - مقفول مصر بس
+**TEOS SI is an offline Windows gateway. No cloud. No foreign API.**
 
-**TEOS SI لا يعمل إلا داخل مصر - Egypt IP Only - Egyptian ID Only**
+### 🔒 LOCKED EGYPT_ONLY
 
-- **Geo-Locked:** يعمل فقط بـ IP مصري - 156.x - 41.x - Egypt
-- **ID Locked:** بطاقة مصرية - رقم قومي مصري - فقط
-- **Seal Locked:** ELMAHROSA INTERNATIONAL - المحروسة - ختم مصري أصيل
-- **No CAT - No Chat Bot - No Foreign**
-- **EST 2007 - Alexandria - Built in Egypt by Egyptians for Egyptians**
+- **Offline-First:** Runs on `localhost:11434` - Ollama local
+- **FAIL_CLOSED:** No internet = No leak
+- **8 Models Local:** qwen3:8b sovereign stack
+- **Verified Release:** `v1.0.0-LOCKED-EGYPT_ONLY-REV2` - SHA256 `DEF9913C...`
 
-**We are REAL SOVEREIGN SI - Locked Egypt Only - Can do anything inside Egypt**
+### 📦 Download Verified Gateway
 
-### TEOS SI CAN DO - Inside Egypt Only:
+**Release:** [v1.0.0-LOCKED-EGYPT_ONLY-REV2](https://github.com/Elmahrosa/elmahrosa-sovereign-si/releases/tag/v1.0.0-LOCKED-EGYPT_ONLY-REV2)
+**File:** `el-mahrosa-sovereign-si-v1.0.0-LOCKED-EGYPT_ONLY.zip` (17.2 KB)
+**Hash:** `DEF9913C64A70622F477B91EE73107801C5BC8CA6F99F5934E9A10560395CF38`
 
-**1. THINKING - يفكر:**
-- يفكر زي Claude - بس مصري - من إسكندرية - للسيادة المصرية
-
-**2. CODING - يكتب كود:**
-- يكتب كود - Solana - Rust - Tauri - بس مقفول مصر
-- Smart Contracts مصرية - محفظة سيادية مصرية
-
-**3. PLANNING - يخطط:**
-- يخطط لمشاريع مصرية - TEOS BROWSER - TEOSEGYPT.COM
-- MAHROUSA.TEOS - PAY.TEOS - مقفول مصر
-
-**4. ANSWERING - يجاوب:**
-- يجاوب مصري - إسكندراني - سيادي - EST 2007
-
----
-
-## ARCHITECTURE - TEOS SI - LOCKED EGYPT ONLY
-
-\\\
-TEOS SI - LOCKED EGYPT ONLY - REAL OS
-│
-├── GEO-LOCK: Egypt IP Only - 41.x / 156.x / 197.x
-├── ID-LOCK: Egyptian National ID Only
-├── SEAL: ELMAHROSA INTERNATIONAL - المحروسة - Lighthouse + Ankh
-│        EST 2007 • السيادة أولاً • SOVEREIGN
-│        TEOS NODE VERIFIED - 21/21 GREEN - SHA256
-│
-├── REAL COMPONENTS - EGYPT ONLY:
-│   ├── TEOS WALLET SI - Solana Mainnet REAL - SOL + USDC - Egypt Only
-│   ├── TEOS WEB4 SI - teos://ayman.teos - .teos NFT - Egypt Only
-│   └── TEOS BROWSER SI - Tauri .exe REAL - Egypt Only - TASK 1
-│
-├── TEOS AI SI - Like Claude - But Egypt Locked
-│   ├── Thinking - Egyptian Thinking
-│   ├── Coding - Egyptian Coding
-│   ├── Planning - Egyptian Planning
-│   └── Answering - Egyptian Answering
-│
-└── MOTTO: السيادة أولاً - Sovereignty First - Egypt First
-         Founder: Ayman Seif - Ayman.teos - EST 2007 - Alexandria
-         Designed in Alexandria • Built in Egypt by TEOS • For Egypt Only
-
-NO CAT - NO FOREIGN - TEOS SI - LOCKED EGYPT ONLY
-\\\
-
-## LIVE - EGYPT ONLY
-
-- **TEOS SI CORE:** REAL - Locked Egypt Only - Can do anything inside Egypt
-- **WALLET SI:** Solana Mainnet REAL - Egypt IP Only
-- **BROWSER SI:** TASK 1 - .exe REAL - Egypt Only
-- **AI SI:** Like Claude - Egypt Locked - Thinking + Coding + Planning
-- **SEAL:** ELMAHROSA INTERNATIONAL - المحروسة - REAL GOLD - Egypt
-
-**We are TEOS SI - LOCKED EGYPT ONLY - REAL SOVEREIGN SI - EST 2007**
-
-**Designed in Alexandria • Built in Egypt by TEOS • For Egypt Only • السيادة أولاً**
+```powershell
+# Verify
+Get-FileHash el-mahrosa-sovereign-si-v1.0.0-LOCKED-EGYPT_ONLY.zip -Algorithm SHA256
