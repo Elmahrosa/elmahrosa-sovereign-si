@@ -4,3 +4,10 @@
 *.safetensors
 core/models/*.gguf
 core/models/*.bin
+*.zip
+*_NOTES.md
+NEW_RELEASE_NOTES.md
+V11*.md
+V112*.md
+.DS_Store
+node_modules/
